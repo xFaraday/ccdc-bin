@@ -1,8 +1,8 @@
 ﻿import-module ActiveDirectory
 
 
-function set() {
-Get-ADUser | ForEach-Object {
+function passchangeAD() {
+Get-ADUser -Filter * | ForEach-Object {
 Set-ADAccountPassword -Identity $_ -NewPassword (ConvertTo-SecureString -AsPlainText "Asecurepassword123!" -Force)
 Enable-ADAccount -Identity $_
 }
@@ -10,7 +10,7 @@ keys
 }
 
 
-function backup() {
+function passchangeREG() {
 Get-WmiObject win32_useraccount | Foreach-Object {
 ([adsi](“WinNT://”+$_.caption).replace(“\”,”/”)).SetPassword(“Asecurepassword123!”)
 }
