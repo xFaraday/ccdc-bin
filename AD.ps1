@@ -4,7 +4,6 @@
 function passchangeAD() {
 Get-ADUser -Filter * | ForEach-Object {
 Set-ADAccountPassword -Identity $_ -NewPassword (ConvertTo-SecureString -AsPlainText "Asecurepassword123!" -Force)
-Enable-ADAccount -Identity $_
 }
 keys
 }
