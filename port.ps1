@@ -23,13 +23,13 @@ function main() {
 
 function singleHost() {
 "Scanning first 1024 ports on " + $target + "!"
-1..22 | % {echo ((new-object Net.Sockets.TcpClient).Connect("$target",$_)) "Port $_ is open!"} 2>$null
+1..1024 | % {echo ((new-object Net.Sockets.TcpClient).Connect("$target",$_)) "Port $_ is open!"} 2>$null
 }
 
 #remember to change for range
 function range() {
 "Scanning first 1024 ports on " + $target + " range!"
-$target | % { $a = $_; 1..22 | % {echo ((new-object Net.Sockets.TcpClient).Connect("10.0.0.$a",$_)) "Port $_ is open!"} 2>$null}
+$target | % { $a = $_; 1..1024 | % {echo ((new-object Net.Sockets.TcpClient).Connect("10.0.0.$a",$_)) "Port $_ is open!"} 2>$null}
 }
 
 main
