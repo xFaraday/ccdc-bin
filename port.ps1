@@ -27,7 +27,7 @@ function singleHost() {
 }
 
 #remember to change for range
-function range($target) {
+function range() {
 "Scanning first 1024 ports on " + $target + " range!"
 $target | % { $a = $_; 1..22 | % {echo ((new-object Net.Sockets.TcpClient).Connect("10.0.0.$a",$_)) "Port $_ is open!"} 2>$null}
 }
