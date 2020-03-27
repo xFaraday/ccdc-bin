@@ -52,12 +52,12 @@ Custom command override.
 
 .EXAMPLE
 
-Grab inventory off of supplied IPs
+Grab detailed systeminfo off of supplied IPs
 Invoke-PA -Inventory -ComputerName @("172.168.2.3", "172.168.2.4")
 
 #>
 
-[CmdletBinding(DefaultParameterSetName="")]
+[CmdletBinding(DefaultParameterSetName="default")]
 Param(
 	[Parameter(Position = 0)]
 	[String[]]
@@ -67,8 +67,15 @@ Param(
 	[Switch]
 	$Inventory,
 
-	
+	[Parameter(Position = 2)]
+	[String[]]
+	$Custom	
 )
 
-}
+	if ($Inventory) {
+	write-output $ComputerName
+	write-output $Inventory
+	}
 
+
+}
