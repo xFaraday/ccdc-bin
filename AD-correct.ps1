@@ -14,23 +14,20 @@ function Scramble-String([string]$inputString){
     return $outputString 
 }
  
-
- 
 function passchangeREG() {
 $adGroupMemberList = Get-ADUser -Filter *
-
 
 foreach($user in $adGroupMemberList) {
     $password = Get-RandomCharacters -length 5 -characters 'abcdefghiklmnoprstuvwxyz'
     $password += Get-RandomCharacters -length 2 -characters 'ABCDEFGHKLMNOPRSTUVWXYZ'
-    $password += Get-RandomCharacters -length 3 -characters '1234567890'
-    $password += Get-RandomCharacters -length 2 -characters '!@#$%^&*()'
+    $password += Get-RandomCharacters -length 2 -characters '1234567890'
+    $password += Get-RandomCharacters -length 1 -characters '!@$%&'
     $password = Scramble-String $password
     $newPassword = $password
     Set-ADAccountPassword -Identity $user -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $newPassword -Force)
     $sam = ($user).SamAccountName
     Write-Output "$($sam),$($newPassword)"`n|FT -AutoSize >>PassChangeNew.csv
-}
+    }
 }
 
 passchangeREG
