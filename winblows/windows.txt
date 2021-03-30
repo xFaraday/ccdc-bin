@@ -1,0 +1,24 @@
+        Commands for inventory:
+        
+        #general stuff
+        > systeminfo
+
+        #Ip address
+        > ipconfig
+
+        #services
+        > get-service | where {$_.Status -eq 'Running'} | sort Name
+
+        #listening connections
+        > get-nettcpconnection | where {$_.State -eq 'Listen'} | sort localport
+        or
+        > netstat -ano | findstr LISTENING
+
+        #users
+        > net user
+
+        #network shares
+        > net share
+
+        #list start up programs
+        > gcim win32_startupcommand
