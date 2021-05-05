@@ -102,7 +102,10 @@ spacer "$section"
 #ports
 ports=$(lsof -i -P -n | grep LISTEN)
 printf "$ports"
-
+#find open ports
+#put those ports into lsof -iTCP:53 -sTCP:LISTEN to find process
+#ps -o ppid= -p pid
+#ps -fp PID    find some way to parse the ps output to get the full command alone maybe
 
 #firewall
 #either learn how to read iptables or just figure out a way to make it easy to read
