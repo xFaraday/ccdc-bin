@@ -102,7 +102,7 @@ spacer "$section"
 #ports
 ports=$(lsof -i -P -n | grep LISTEN)
 printf "$ports"
-#find open ports
+#find open ports lsof -i -P -n | grep LISTEN | awk '{print $9}' | cut -d':' -f2-
 #put those ports into lsof -iTCP:53 -sTCP:LISTEN to find process
 #ps -o ppid= -p pid
 #ps -fp PID    find some way to parse the ps output to get the full command alone maybe
