@@ -31,7 +31,7 @@ printf "
                 \CSUSBCSU/.
                  \CSUSBC/.
                   \CSUS/.
-                   \**/.\n\n"
+                   \**/.\n\n" 
 
 printf "${RED}   /=====   /=====   /====\   /=====\n${NC}"
 printf "${RED}  /=       /=       /=   =\  /=\n${NC}"
@@ -39,7 +39,6 @@ printf "${RED} /=       /=       /=   =/  /=\n${NC}"
 printf "${RED}/=====   /=====   /====/   /=====\n${NC}"
 
 printf "\n${blue}BLUE TEAM INVENTORY\n\n${NC}"
-
 
 function spacer () {
 	printf "\n\n############################ $1 ############################\n\n"
@@ -55,8 +54,8 @@ host=$(hostname)
 printf "Hostname: $host\n"
 cards=$(lshw -class network | grep "logical name:" | sed 's/logical name://')
 for n in $cards; do
-ip4=$(/sbin/ip -o -4 addr list $n | awk '{print $4}' | cut -d/ -f1)
-printf "Ip: $ip4 Card: $n\n"
+	ip4=$(/sbin/ip -o -4 addr list $n | awk '{print $4}' | cut -d/ -f1)
+	printf "Ip: $ip4 Card: $n\n"
 done
 
 section="${blue}OS INFORMATION${NC}"
@@ -88,24 +87,37 @@ if ! [ -z "grep sudo /etc/group" ]; then
 	grep -Po '^sudo.+:\K.*$' /etc/group
 fi
 
-if ! [ -z "grep sudo /etc/group" ]; then
-	section="${blue}Users in sudo group${NC}"
-	smallspacer "$section"
-	grep -Po '^sudo.+:\K.*$' /etc/group
-fi
-
-
-
 section="${blue}LISTENING CONNECTIONS${NC}"
 spacer "$section"
+
+function motherprocess() {
+	tmp=$1
+	until [ $tmp -eq 1 ]; do
+		reg=$tmp
+		tmp=$(ps -o ppid= -p $reg)
+	done
+	cmd=$(ps -fp $reg | awk '{print $8}')
+	printf "Master process ID: $reg\n $cmd\n"
+}
 
 #ports
 ports=$(lsof -i -P -n | grep LISTEN)
 printf "$ports"
 #find open ports lsof -i -P -n | grep LISTEN | awk '{print $9}' | cut -d':' -f2-
+portlisten=$(lsof -i -P -n | grep LISTEN | awk '{print $9}' | cut -d':' -f2- | sort -u)
+for i in $portlisten; do
+	tmp=$(expr $i + 1 2>/dev/null)
+	if [ $? == 2 ]; then
+		printf "\n"
+	else
+		var=$(lsof -iTCP:$i -sTCP:LISTEN | awk '{print $2}' | tail -n1)
+		printf "\nPort: ${RED}$i${NC} Owning process: $var \n"
+		motherprocess "$var"
+	fi
+done
 #put those ports into lsof -iTCP:53 -sTCP:LISTEN to find process
 #ps -o ppid= -p pid
-#ps -fp PID    find some way to parse the ps output to get the full command alone maybe
+#ps -fp PID find some way to parse the ps output to get the full command alone maybe
 
 #firewall
 #either learn how to read iptables or just figure out a way to make it easy to read
@@ -115,12 +127,16 @@ printf "$ports"
 section="${blue}SERVICES${NC}"
 spacer "$section"
 
-essentials=("ssh" "apache" "apache2" "httpd" "smbd" "vsftpd" "mysql" "postgresql" "vncserver" "xinetd" "telnetd" "webmin" "")
+essentials=("ssh" "sshd" "apache" "apache2" "httpd" "smbd" "vsftpd" "mysql" "postgresql" "vncserver" "xinetd" "telnetd" "webmin" "cups" "ntpd" "snmpd" "dhcpd" "ipop3" "postfix" "rsyslog")
 for i in ${essentials[@]}; do
 	var=$(systemctl is-active $i)
 	if [ "$var" == "active" ]; then
-		printf "Service: $i is running!\n"
+		secvar=$(systemctl is-enabled $i)
+		if [ "$secvar" == "enabled" ]; then
+			printf "Service: ${RED}$i${NC} is running and enabled!\n"
+		else
+			printf "Service: ${RED}$i${NC} is running!\n"
+		fi
 	fi
 done
 serviceslong=$(systemctl --type=service --state=active)
-
