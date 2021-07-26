@@ -81,11 +81,20 @@ if [ -f /etc/sudoers ] ; then
     awk '!/#(.*)|^$/' /etc/sudoers
 fi 
 
+#FINISH THIS SHIT
 if ! [ -z "grep sudo /etc/group" ]; then
 	section="${blue}Users in sudo group${NC}"
 	smallspacer "$section"
 	grep -Po '^sudo.+:\K.*$' /etc/group
+	section="${blue}Users in admin group${NC}"
+	smallspacer "$section"
+	grep -Po '^admin.+:\K.*$' /etc/group
+	section="${blue}Users in wheel group${NC}"
+	smallspacer "$section"
+	grep -Po '^wheel.+:\K.*$' /etc/group
 fi
+
+
 
 section="${blue}LISTENING CONNECTIONS${NC}"
 spacer "$section"
@@ -110,6 +119,9 @@ for i in $portlisten; do
 	if [ $? == 2 ]; then
 		printf "\n"
 	else
+		#TO DO 
+		#also print the command used for last process, just in case
+		#
 		var=$(lsof -iTCP:$i -sTCP:LISTEN | awk '{print $2}' | tail -n1)
 		printf "\nPort: ${RED}$i${NC} Owning process: $var \n"
 		motherprocess "$var"
@@ -134,8 +146,12 @@ for i in ${essentials[@]}; do
 		secvar=$(systemctl is-enabled $i)
 		if [ "$secvar" == "enabled" ]; then
 			printf "Service: ${RED}$i${NC} is running and enabled!\n"
+			loc=$(ls /etc | grep $i)
+			printf "\t Likely config files: /etc/$loc\n"
 		else
 			printf "Service: ${RED}$i${NC} is running!\n"
+			loc=$(ls /etc | grep $i)
+			printf "\t Likely config files: /etc/$loc\n"
 		fi
 	fi
 done
