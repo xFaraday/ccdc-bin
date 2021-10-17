@@ -33,10 +33,11 @@ printf "
                   \CSUS/.
                    \**/.\n\n" 
 
-printf "${RED}   /=====   /=====   /====\   /=====\n${NC}"
-printf "${RED}  /=       /=       /=   =\  /=\n${NC}"
-printf "${RED} /=       /=       /=   =/  /=\n${NC}"
-printf "${RED}/=====   /=====   /====/   /=====\n${NC}"
+printf "\t${RED}   ________________  ______\n${NC}"
+printf "\t${RED}  / ____/ ____/ __ \/ ____/\n${NC}"
+printf "\t${RED} / /   / /   / / / / /\n${NC}"     
+printf "\t${RED}/ /___/ /___/ /_/ / /___\n${NC}"   
+printf "\t${RED}\____/\____/_____/\____/\n${NC}" 
 
 printf "\n${blue}BLUE TEAM INVENTORY\n\n${NC}"
 
@@ -64,13 +65,18 @@ spacer "$section"
 #host info
 version=$(cat /etc/*rel*)
 printf "$version\n"
+#kernel shit
+kernel=$(uname -a)
+printf "\n\n$kernel\n"
+os_release=$(lsb_release -a)
+printf "\n\n$os_release\n"
 
 section="${blue}USER INFORMATION${NC}"
 spacer "$section"
 
 #users
 #cat /etc/passwd | grep -in /bin/bash
-users=$(cat /etc/passwd | grep -in /bin/bash)
+users=$(grep 'sh$' /etc/passwd)
 section="${blue}Users that can login${NC}"
 smallspacer "$section"
 printf "$users"
@@ -81,7 +87,6 @@ if [ -f /etc/sudoers ] ; then
     awk '!/#(.*)|^$/' /etc/sudoers
 fi 
 
-#FINISH THIS SHIT
 if ! [ -z "grep sudo /etc/group" ]; then
 	section="${blue}Users in sudo group${NC}"
 	smallspacer "$section"
@@ -94,7 +99,12 @@ if ! [ -z "grep sudo /etc/group" ]; then
 	grep -Po '^wheel.+:\K.*$' /etc/group
 fi
 
+section="${blue}Login Information${NC}"
+smallspacer "$section"
 
+printf "$(lastlog)\n\n"
+
+printf "$(w)\n\n"
 
 section="${blue}LISTENING CONNECTIONS${NC}"
 spacer "$section"
@@ -139,7 +149,7 @@ done
 section="${blue}SERVICES${NC}"
 spacer "$section"
 
-essentials=("ssh" "sshd" "apache" "apache2" "httpd" "smbd" "vsftpd" "mysql" "postgresql" "vncserver" "xinetd" "telnetd" "webmin" "cups" "ntpd" "snmpd" "dhcpd" "ipop3" "postfix" "rsyslog")
+essentials=("ssh" "sshd" "apache" "apache2" "httpd" "smbd" "vsftpd" "mysql" "postgresql" "vncserver" "xinetd" "telnetd" "webmin" "cups" "ntpd" "snmpd" "dhcpd" "ipop3" "postfix" "rsyslog" "docker" "samba" "postfix" "smtp" "psql" "clamav" "bind9" "nginx" "mariadb" "ftp")
 for i in ${essentials[@]}; do
 	var=$(systemctl is-active $i)
 	if [ "$var" == "active" ]; then
@@ -156,3 +166,20 @@ for i in ${essentials[@]}; do
 	fi
 done
 serviceslong=$(systemctl --type=service --state=active)
+
+section="${blue}CRONTAB${NC}"
+spacer "$section"
+
+section="${blue}System Cronjobs${NC}"
+smallspacer "$section"
+
+crontab -l
+
+section="${blue}User Cronjobs${NC}"
+smallspacer "$section"
+
+users=$(grep 'sh$' /etc/passwd | cut -d':' -f1)
+for user in $users; do
+	crontab -l -u $user
+done
+
