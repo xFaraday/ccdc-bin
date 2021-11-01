@@ -1,150 +1,131 @@
-#!/usr/bin/python
-
-import curses  # curses is the interface for capturing key presses on the menu, os launches the files
-import os
-import sys
-from core.engine import Engine
+from simple_term_menu import TerminalMenu
 
 
 class Menu:
+    """
+    A class that uses simple_term_menu's TerminalMenu object to create a menu based on 
+    a list of tuples
+    """
 
-    def __init__(self):
-        self.window = curses.initscr()  # initializes a new window for capturing key presses
-        curses.noecho()  # Disables automatic echoing of key presses (prevents program from input each key twice)
-        curses.cbreak()
-        curses.start_color()  # Lets you use colors when highlighting selected menu option
-        self.window.keypad(1)  # Capture input from keypad
-        curses.curs_set(0)
+    def __init__(self, title: str, options: list,
+                 cursor=">", cursor_style=("fg_green", "bold"),
+                 style=("bg_black", "fg_gray")) -> None:
+        """
+        :param str cursor: Define another cursor or disable it (None). The \
+            default cursor is ">"
+        :param str cursor_style: The style of the shown cursor. The default \
+            style is ("fg_red", "bold")
+        :param str style: The style of the selected menu entry. The default \
+            style is ("standout",)
+        :ivar str title: the title of the menu
+        :ivar list[str] items: A list of the options to be displayed on the \
+            menu
+        :ivar list[tuple[str, function]] switch: A case-switch for quickly \
+            dealing with the function attatched with to the selected option
+        :ivar :class:'TerminalMenu<simple_term_menu.TerminalMenu>' menu: The \
+            menu's TerminalMenu object
+        """
 
-        # Sets up color pair #1, it does black text with white background
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-        # the coloring for a highlighted menu option
-        highlighted = curses.color_pair(1)
+        self.title = title
+        self.items = self.set_items(options)
 
-    # This function displays the appropriate menu and returns the option selected
+        self.switch = options
 
-    def run(self, menu, parent):
-        # work out what text to display as the last menu option
-        if parent is None:
-            lastoption = 'Exit'
-        else:
-            lastoption = 'Return to %s menu' % parent['title']
+        self.menu = TerminalMenu(
+            menu_entries=self.items,
+            title=self.title,
+            menu_cursor=cursor,
+            menu_cursor_style=cursor_style,
+            menu_highlight_style=style,
+            cycle_cursor=True,
+            clear_screen=True,
+        )
 
-        optioncount = len(menu['options'])  # how many options in this menu
+    @staticmethod
+    def set_items(options) -> list:
+        """
+        Generates a list of menu options compatable with the TerminalMenu object
 
-        idx = 0  # idx is the index of the hightlighted menu option.  Every time run is called, position returns to 0, when run ends the position is returned and tells the program what option has been selected
-        oldpos = None  # used to prevent the self.window being redrawn every time
-        x = None  # control for while loop, let's you scroll through options until return key is pressed then returns idx to program
+        :param list[tuple[str, function]]
+        :rtype: list[str]
+        """
 
-        # Loop until return key is pressed
-        while x != ord('\n'):
-            if idx != oldpos:
-                oldpos = idx
+        r_list = list()
+        for option in options:
+            r_list.append(option[0])
+        return r_list
 
-                # clears previous self.window on key press and updates display based on idx
-                self.window.clear()
-                self.window.border(0)
+    def setup(self) -> None:
+        pass
 
-                # Title for this menu
-                self.window.addstr(2, 2, menu['title'], curses.A_STANDOUT)
+    def show(self) -> None:
+        """
+        Shows menu
+        """
 
-                # Subtitle for this menu
-                self.window.addstr(4, 2, menu['subtitle'], curses.A_BOLD)
+        self.menu.show()
 
-                # Display all the menu items, showing the 'idx' item highlighted
-                for index in range(optioncount):
-                    textstyle = curses.A_NORMAL
-                    if idx == index:
-                        textstyle = curses.color_pair(1)
-                    self.window.addstr(
-                        5 + index, 4, '%d - %s' % (index + 1, menu['options'][index]['title']), textstyle)
+    def start(self) -> None:
+        """
+        Starts the main menu loop
+        """
+        menu_exit = False
+        while not menu_exit:
+            selection = self.menu.show()
 
-                # Now display Exit/Return at bottom of menu
-                textstyle = curses.A_NORMAL
-                if idx == optioncount:
-                    textstyle = curses.color_pair(1)
-                self.window.addstr(5 + optioncount, 4, '%d - %s' %
-                                   (optioncount + 1, lastoption), textstyle)
-                self.window.refresh()
-
-            x = self.window.getch()  # Gets user input
-
-            if x >= ord('1') and x <= ord(str(optioncount + 1)):
-                # convert keypress back to a number, then subtract 1 to get index
-                idx = x - ord('0') - 1
-            elif x == 258:  # down arrow
-                if idx < optioncount:
-                    idx += 1
-                else:
-                    idx = 0
-            elif x == 259:  # up arrow
-                if idx > 0:
-                    idx += -1
-                else:
-                    idx = optioncount
-            elif x != ord('\n'):
-                curses.flash()
-        return idx
-
-    # Intrprets the given Menu Data
-    def interpret(self, menu, parent=None):
-        optioncount = len(menu['options'])
-        exiting = False
-        while not exiting:  # Loop until the user exits the menu
-            getin = self.run(menu, parent)
-            if getin == optioncount:
-                exiting = True
-            elif menu['options'][getin]['type'] == 'command':
-                menu['options'][getin]['command'](
-                    menu['options'][getin]['title'])
-            elif menu['options'][getin]['type'] == 'menu':
-                # display the submenu
-                self.interpret(menu['options'][getin], menu)
+            if selection == len(self.items)-1:
+                menu_exit = True
+            else:
+                self.switch[selection][1]()
 
 
-menu_data = {
-    "title": "Serial Scripter",
-    "type": "menu",
-    "subtitle": "Please selection an option...",
-    "options": [
-        {
-            "title": "Ansible",
-            "type": "menu",
-            "subtitle": "Please selection an option...",
-            "options": [
-                {
-                    "title": "Scripts Transfer",
-                    "type": "command"
-                },
-                {
-                    "title": "Execute",
-                    "type": "menu",
-                    "subtitle": "Please selection a host...",
-                    "options": Engine.Ansible.get_hosts()
-                },
-                {
-                    "title": "Results",
-                    "type": "command"
-                }
-            ]
-        },
-        {
-            "title": "Generate Host File List",
-            "type": "command"
-        },
-        {
-            "title": "Scripts",
-            "type": "command"
-        }
-    ]
-}
+class MultiSelectMenu(Menu):
+    def __init__(self, title: str, options: list, cursor=">", cursor_style=("fg_green", "bold"), style=("bg_black", "fg_gray")) -> None:
+        """
+        :param str cursor: Define another cursor or disable it (None). The  \
+            default cursor is ">"
+        :param str cursor_style: The style of the shown cursor. The default \
+            style is ("fg_red", "bold")
+        :param str style: The style of the selected menu entry. The default \
+            style is ("standout",)
+        :ivar str title: the title of the menu
+        :ivar list[str] items: A list of the options to be displayed on the \
+            menu
+        :ivar list[tuple[str, function]] switch: A case-switch for quickly  \
+            dealing with the function attatched with to the selected option
+        :ivar :class:'TerminalMenu<simple_term_menu.TerminalMenu>' menu:    \
+            The menu's TerminalMenu object
+        """
 
+        self.title = title
+        self.items = self.set_items(options)
 
-def start():
-    try:
-        Menu().interpret(menu_data)
-    except:
-        curses.endwin()
-        print("ERROR: Please Restart Application")
-        sys.exit(1)
-    curses.endwin()
+        self.switch = options
+
+        self.menu = TerminalMenu(
+            menu_entries=self.items,
+            title=self.title,
+            menu_cursor=cursor,
+            menu_cursor_style=cursor_style,
+            status_bar_style=("fg_gray", "bg_black"),
+            multi_select_cursor_style=("fg_green", "bold"),
+            multi_select_cursor='✔',
+            menu_highlight_style=style,
+            multi_select=True,
+            show_multi_select_hint=True,
+            cycle_cursor=True,
+            clear_screen=True,
+        )
+
+    def start(self) -> None:
+        """
+        Starts the main menu loop
+        """
+        menu_exit = False
+        while not menu_exit:
+            selection = self.menu.show()
+
+            try:
+                self.switch[selection][1]()
+            except:
+                menu_exit = True

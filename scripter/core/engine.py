@@ -4,61 +4,82 @@ import re
 
 
 class Engine:
-    exec_list = []
+    """
+    This class is a collection of classes and methods which build up
+    the scripting engines core backend functionallity
+    """
 
     @staticmethod
-    def gen_public_key():
+    def gen_public_key() -> None:
+        """
+        Generates an ssh key which will then be deployed to our ansible nodes
+        """
+
         os.system('ssh-keygen')
 
     class Ansible:
+        """
+        This a class is a collection of all Ansible-related methods
+        """
         @staticmethod
-        def load_scripts(os_name):
-            rList = []
+        def load_scripts(os_name: str) -> list:
+            """
+            Loads all CCDC scripts for a specified operating system
+
+            :param str os_name: name of the desired operating scripts
+            :rtype: list[tuple[int, function]]
+            """
+
+            rList = list()
 
             scripts = os.listdir(
-                path='../scripts/' + os_name)
+                path='scripts/' + os_name)
 
             for script in scripts:
                 rList.append(
-                    {'title': script, 'type': 'command',
-                     'command': Engine.Ansible.add_script}
+                    (script, print)
                 )
             return rList
 
         @staticmethod
-        def add_script(name):
-            if name not in Engine.exec_list:
-                Engine.exec_list.append(name)
-            print(Engine.exec_list)
+        def load_host_options(menu) -> list:
+            """
+            Loads all hosts specified in the hosts-list_1.log and adds 
+            them as options on the specified menu
 
-        @staticmethod
-        def get_hosts():
-            rList = []
+            :param :class:'Menu<gui.ui.Menu>' menu: The menu to add our host options to
+            :rtype: list[tuple[int, function]]
+            """
 
-            with open('C:/Users/cmaga/OneDrive/Desktop/CCDC/scripter/test/hosts-list_1.log') as file:
+            alphabet = 'abcdefghijklmnopqrstuvwxyz'
+            rList = list()
+
+            with open(f'{os.getcwd()}/test/hosts-list_1.log') as file:
                 file_contents = file.read()
 
-            for i in re.findall("\[(.*?)\]", file_contents):
-                rList.append({'title': i, 'type': 'menu', 'subtitle': 'Please selection a your OS...',
-                              'options': [
-                                  {'title': 'windows', 'type': 'menu', 'subtitle': 'Please selection a script...',
-                                      'options': Engine.Ansible.load_scripts('windows')},
-                                  {'title': 'linux', 'type': 'menu', 'subtitle': 'Please selection a script...',
-                                      'options': Engine.Ansible.load_scripts('linux')},
-                              ]})
+            for i, j in enumerate(re.findall("\[(.*?)\]", file_contents)):
+                rList.append((f'[{alphabet[i]}] [{j}]', menu.start))
+
+            rList.append(("[<] Go back", print))
+
             return rList
 
         @staticmethod
-        def get_ips():
-            with open('C:/Users/cmaga/OneDrive/Desktop/CCDC/scripter/test/hosts-list_1.log') as file:
+        def get_ips() -> list:
+            """
+            Parses and returns a list of all IPs from the hosts-list_1.log file
+
+            :rtype: list[str]
+            """
+
+            with open(f'{os.getcwd()}/test/hosts-list_1.log') as file:
                 file_contents = file.read()
 
-            read_data = file_contents.split('[')
+            host_data = file_contents.split('[')
 
-            for i, j in enumerate(read_data):
-                read_data[i] = "[" + read_data[i]
+            for i, host in enumerate(host_data):
+                host_data[i] = host[host.index(']')+1:]
 
-            print(read_data)
+            host_data = [i for i in host_data if i]
 
-
-# Engine.Ansible.get_ips()
+            return host_data
