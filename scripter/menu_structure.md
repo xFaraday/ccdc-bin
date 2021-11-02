@@ -1,0 +1,15 @@
+```js
+[ROOT]
+├──[Ansible]
+|      ├──[ScriptsTransfer] -> [Function]
+|      ├──[Execute]
+|      |      ├──[Windows]
+|      |      |     └──[Windows Scripts] -> [SELECTIONS]
+|      |      └──[Linux]
+|      |            └──[Linux Scripts] -> [SELECTIONS]
+|      ├──[Results] -> [Function]
+|      └──[Go Back] -> [Function]
+├──[Generate_Host_File_List] -> [Function]
+├──[Scripts] -> [Function]
+└──[quit] -> [Exit]
+```
