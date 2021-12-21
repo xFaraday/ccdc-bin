@@ -34,10 +34,10 @@ option: services
 Collects service information.
 
 option: shares
-Collects network share information
+Collects network share information.
 
 option: firewall
-Collects firewall information
+Collects firewall information.
 
 option: tasks
 Collects scheduled tasks.
@@ -65,7 +65,6 @@ function banner {
     Write-Host "Version: 1.0"
     Write-Host "Author: Ethan Michalak"
     Write-Host " "
-
 "
                  /C.   C\.
                 /SS.   SS\.
@@ -286,4 +285,5 @@ if ($csvstore -eq $NULL) {
 
 }
 
+#runs all inventory functions and stores the output in a csv file called all allinventory.csv
 #Invoke-Inventory -runtime All -csvstore allinventory
