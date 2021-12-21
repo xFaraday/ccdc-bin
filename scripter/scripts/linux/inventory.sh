@@ -49,14 +49,27 @@ function smallspacer () {
 	printf "\n############## $1 ##############\n"
 }
 
+function ExportToCSV () {
+	#figure out a way to make a newline for the csv file and fix it for the arrays
+	printf "\n\n${blue}Exporting to CSV...\n\n${NC}"
+	if ! [ -f ./inventory.csv ]; then
+		touch ./inventory.csv
+		runtime=$(date +"%H:%M:%S")
+		printf "$runtime," >> ./inventory.csv
+	fi
+	printf "$1," >> ./inventory.csv
+}
+
 #host and ip
 #hostname | ip 
 host=$(hostname)
 printf "Hostname: $host\n"
 cards=$(lshw -class network | grep "logical name:" | sed 's/logical name://')
+ips=()
 for n in $cards; do
 	ip4=$(/sbin/ip -o -4 addr list $n | awk '{print $4}' | cut -d/ -f1)
 	printf "Ip: $ip4 Card: $n\n"
+	ips+=($ip4)
 done
 
 section="${blue}OS INFORMATION${NC}"
@@ -148,7 +161,7 @@ done
 #systemctl is-active --quiet service && echo Service is running
 section="${blue}SERVICES${NC}"
 spacer "$section"
-
+runningservs=()
 essentials=("ssh" "sshd" "apache" "apache2" "httpd" "smbd" "vsftpd" "mysql" "postgresql" "vncserver" "xinetd" "telnetd" "webmin" "cups" "ntpd" "snmpd" "dhcpd" "ipop3" "postfix" "rsyslog" "docker" "samba" "postfix" "smtp" "psql" "clamav" "bind9" "nginx" "mariadb" "ftp")
 for i in ${essentials[@]}; do
 	var=$(systemctl is-active $i)
@@ -162,6 +175,7 @@ for i in ${essentials[@]}; do
 			printf "Service: ${RED}$i${NC} is running!\n"
 			loc=$(ls /etc | grep $i)
 			printf "\t Likely config files: /etc/$loc\n"
+			runningservs+=("$i")
 		fi
 	fi
 done
@@ -183,3 +197,23 @@ for user in $users; do
 	crontab -l -u $user
 done
 
+
+section="${blue}LOGS${NC}"
+spacer "$section"
+
+#add log section
+
+
+section="${blue}FILES${NC}"
+spacer "$section"
+
+#add file section
+
+
+#export to csv section
+ExportToCSV $host
+ExportToCSV $os_release
+ExportToCSV $version
+ExportToCSV $ips
+ExportToCSV $users
+ExportToCSV $runningservs
