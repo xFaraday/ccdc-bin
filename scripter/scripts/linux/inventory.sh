@@ -11,15 +11,15 @@ NC='\033[0m'
 
 function usage() {
 	banner
-	printf -- "-host =  host infomration\n"
-	printf -- "-user =  user infomration\n"
-	printf -- "-login =  lastlog\n"
-	printf -- "-ports =  port information\n"
-	printf -- "-services =  service information\n"
-	printf -- "-cron =  cron information\n"
-	printf -- "-log =  log information\n"
-	printf -- "-file =  file information\n"
-	printf -- "-all =  all information\n"
+	printf -- "-v =  host infomration\n"
+	printf -- "-u =  user infomration\n"
+	printf -- "-l =  lastlog\n"
+	printf -- "-p =  port information\n"
+	printf -- "-s =  service information\n"
+	printf -- "-c =  cron information\n"
+	printf -- "-g =  log information\n"
+	printf -- "-f =  file information\n"
+	printf -- "-a =  all information\n"
 	printf -- "-h = help\n"
 }
 
@@ -232,8 +232,31 @@ function log() {
 	spacer "$section"
 
 	#add log section
-	
-	
+		
+}
+
+function docker() {
+	section="${blue}DOCKER${NC}"
+	spacer "$section"
+
+	#checking for docker
+	which docker > /dev/null 2>&1
+	if [ $? == 0 ]; then
+  		echo 'Error: Docker is not installed.' >&2
+  	else 
+  		echo 'Docker installed'
+	fi
+
+	runnin=$(docker ps)
+
+	images=$(docker images)
+	section="${blue}currently running${NC}"
+	smallspacer "$section"
+	printf -- "$runnin\n\n"
+	section="${blue}images installed${NC}"
+	smallspace "$section"
+	printf -- "$images\n\n"
+
 }
 
 function file() {
@@ -244,19 +267,21 @@ function file() {
 	scriptsinhome=$(find /home -daystart -mtime -2 -name '*.sh' -type f -exec ls -l {} \; 2>/dev/null)
 
 	printf -- "$scriptsinhome"
+	printf "\n\n"
 }
 
 while getopts 'host:user:login:ports:services:cron:log:file:all' option; do
 	case "$option" in
-		h) host; exit 0 ;;
+		v)host; exit 0 ;;
 		u)user; exit 0 ;;
 		l)login; exit 0 ;;
 		p)ports; exit 0 ;;
 		s)service; exit 0 ;;
 		c)cron; exit 0 ;;
+		o)docker; exit 0 ;;
 		g)log; exit 0 ;;
 		f)file; exit 0 ;;
-		a)a= host; user; login; ports; service; cron; log; file; exit 0;;
-		x) usage; exit 0;;
+		a)a= host; user; login; ports; service; cron; docker; log; file; exit 0;;
+		h) usage; exit 0;;
 	esac
 done
