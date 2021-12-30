@@ -235,17 +235,7 @@ function log() {
 		
 }
 
-function docker() {
-	section="${blue}DOCKER${NC}"
-	spacer "$section"
-
-	#checking for docker
-	which docker > /dev/null 2>&1
-	if [ $? == 0 ]; then
-  		echo 'Error: Docker is not installed.' >&2
-  	else 
-  		echo 'Docker installed'
-	fi
+function dockerenum() {
 
 	runnin=$(docker ps)
 
@@ -254,10 +244,26 @@ function docker() {
 	smallspacer "$section"
 	printf -- "$runnin\n\n"
 	section="${blue}images installed${NC}"
-	smallspace "$section"
+	smallspacer "$section"
 	printf -- "$images\n\n"
 
 }
+
+function dockercheck() {
+	section="${blue}DOCKER${NC}"
+	spacer "$section"
+
+	if [ -x "$(command -v Docker)" ]; then
+  		echo 'Error: Docker is not installed.'
+  		return 1
+  	else 
+  		echo 'Docker installed'
+  		dockerenum
+	fi
+}
+
+
+
 
 function file() {
 	section="${blue}FILES${NC}"
@@ -278,7 +284,7 @@ while getopts 'host:user:login:ports:services:cron:log:file:all' option; do
 		p)ports; exit 0 ;;
 		s)service; exit 0 ;;
 		c)cron; exit 0 ;;
-		o)docker; exit 0 ;;
+		o)dockercheck; exit 0 ;;
 		g)log; exit 0 ;;
 		f)file; exit 0 ;;
 		a)a= host; user; login; ports; service; cron; docker; log; file; exit 0;;
