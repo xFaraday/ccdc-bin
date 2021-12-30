@@ -287,7 +287,7 @@ while getopts 'host:user:login:ports:services:cron:log:file:all' option; do
 		o)dockercheck; exit 0 ;;
 		g)log; exit 0 ;;
 		f)file; exit 0 ;;
-		a)a= host; user; login; ports; service; cron; docker; log; file; exit 0;;
+		a)a= host; user; login; ports; service; cron; dockercheck; log; file; exit 0;;
 		h) usage; exit 0;;
 	esac
 done
