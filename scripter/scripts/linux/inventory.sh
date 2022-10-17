@@ -384,7 +384,45 @@ function file() {
 	printf "\n\n"
 }
 
+GetOS() {
+	if [ -x $(which hostnamectl) ]; then
+		OS=$(hostnamectl | grep "Operating System" | cut -d':' -f2)
+		printf "$OS"
+	else
+		OS=$(cat /etc/*-release | grep PRETTY_NAME | cut -d'=' -f2)
+	fi
+}
+
+GetIP() {
+	cards=$(lshw -class network | grep "logical name:" | sed 's/logical name://')
+	for n in $cards; do
+		ip4=$(/sbin/ip -o -4 addr list $n | awk '{print $4}' | cut -d/ -f1)
+		printf "$ip4"
+	done
+}
+
+PostToServ() {
+	postdata=$1
+	echo $postdata | jq 
+	if [ -x $(which curl) ]; then
+		curl -d "$postdata" http://${webserv} #--insecure
+	else 
+		wget --post-data "$postdata" http://${webserv} #--no-check-certificate
+	fi
+}
+
 function ExportToJSON() {
+	OS=$(GetOS)
+	IP=""
+	IPS=$(GetIP)
+	if [[ $(echo $IPS | wc -l) -gt 1 ]]; then
+		for i in $IPS; do
+			IP+="$i-:-"
+		done
+	else
+		IP=$IPS
+	fi
+	
 	webserv="httpbin.org/post"
 	printf "\n\n${BLUE}Exporting to JSON...\n\n${NC}"
 	JSON='{"name":"%s","ip":"%s","OS":"%s","services":[%s]}'
@@ -392,16 +430,15 @@ function ExportToJSON() {
 	#\{ "port": 80, "service": "http"},
 	#from the cracked lsof function
 	name=$(hostname)
-	IP=$(ip -brief a | head -n 3 | tail -n 1 | awk {'print $3'})
-	OS=$(hostnamectl | tail -n 3 | head -n 1 | awk {'print $3'})
 	services=$(ports "json")
-	#echo -e "${services::-1}\n\n"
-	postdata=$(printf "$JSON" "$name" "$IP" "$OS" "${services::-1}")
-	echo $postdata | jq
-	if [ -x $(which curl) ]; then
-		curl -d "$postdata" http://${webserv} #--insecure
+	echo -e "${services::-1}\n\n"
+	if [[ $(echo -e "${services}" | wc -l) -gt 0 ]]; then
+		postdata=$(printf "$JSON" "$name" "$IP" "$OS" "${services::-1}")
+		PostToServ "$postdata"
 	else 
-		wget --post-data "$postdata" http://${webserv} #--no-check-certificate
+		$services='{"Port": "NULL", "Service": "NULL"}'
+		postdata=$(printf "$JSON" "$name" "$IP" "$OS" "$services")
+		PostToServ "$postdata"
 	fi
 }
 
@@ -421,4 +458,5 @@ function ExportToJSON() {
 #		h) usage; exit 0;;
 #	esac
 #done
+#host
 ExportToJSON
