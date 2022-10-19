@@ -246,7 +246,7 @@ function ports() {
 		cmd=$(ps -fp $reg | awk '{print $8}')
 		if [[ ! -z "$1" ]]; then
 			last=$(echo $cmd | tail -n 1 | awk {'print $2'})
-			printf "\"Service\":\"$last\"},"
+			printf "\"service\":\"$last\"},"
 		else
 			printf "Master process ID: $reg\n $cmd\n"
 		fi
@@ -265,7 +265,7 @@ function ports() {
 			#
 			if [[ ! -z "$1" ]]; then
 				var=$(lsof -iTCP:$i -sTCP:LISTEN | awk '{print $2}' | tail -n1)
-				printf "{\"Port\":\"$i\","
+				printf "{\"port\":$i,"
 				motherprocess "$var"
 			else
 				var=$(lsof -iTCP:$i -sTCP:LISTEN | awk '{print $2}' | tail -n1)
@@ -360,19 +360,6 @@ function dockerenum() {
 
 }
 
-function dockercheck() {
-	section="${BLUE}DOCKER${NC}"
-	spacer "$section"
-
-	if [ -x "$(command -v Docker)" ]; then
-  		echo 'Error: Docker is not installed.'
-  		return 1
-  	else 
-  		echo 'Docker installed'
-  		dockerenum
-	fi
-}
-
 function file() {
 	section="${BLUE}FILES${NC}"
 	spacer "$section"
@@ -383,6 +370,12 @@ function file() {
 	printf -- "$scriptsinhome"
 	printf "\n\n"
 }
+
+##########################################
+#					                     #
+#	         new functions               #
+#					                     #
+#########################################
 
 GetOS() {
 	if [ -x $(which hostnamectl) ]; then
@@ -401,13 +394,47 @@ GetIP() {
 	done
 }
 
+GetUsers() {
+	users=$(grep 'sh$' /etc/passwd)
+	names=$(echo $users | cut -d':' -f1)
+	uid=$(echo $users | cut -d':' -f3)
+	length=$(echo $users | wc -l)
+	
+
+}
+
+function dockercheck() {
+	#section="${BLUE}DOCKER${NC}"
+	#spacer "$section"
+
+	if [ -x "$(command -v Docker)" ]; then
+  		echo 'Error: Docker is not installed.'
+  		return 1
+  	else 
+  		echo 'Docker installed'
+  		return 0
+	fi
+}
+
 PostToServ() {
+	webserv="10.123.80.115:5000/api/v1/common/inventory"
 	postdata=$1
 	echo $postdata | jq 
 	if [ -x $(which curl) ]; then
-		curl -d "$postdata" http://${webserv} #--insecure
+		#add custom user agent
+		curl -H 'Content-Type: application/json' -d "$postdata" https://${webserv} --insecure
 	else 
-		wget --post-data "$postdata" http://${webserv} #--no-check-certificate
+		wget --post-data "$postdata" https://${webserv} #--no-check-certificate
+	fi
+}
+
+DSuck() {
+	docs=$(docker ps -a)
+	if [[ -z "$docs" ]]; then
+		printf "null"
+	else 
+		var=$(echo $docs | cut -d' ' -f1,4)
+		echo $var
 	fi
 }
 
@@ -419,25 +446,33 @@ function ExportToJSON() {
 		for i in $IPS; do
 			IP+="$i-:-"
 		done
-	else
 		IP=$IPS
 	fi
 	
-	webserv="httpbin.org/post"
+	docks=""
+	if [ -x "$(command -v Docker)" ]; then
+  		echo 'Error: Docker is not installed.'
+  	else 
+  		echo 'Docker installed'
+		dockerCon=$(DSuck)
+	fi
+
 	printf "\n\n${BLUE}Exporting to JSON...\n\n${NC}"
-	JSON='{"name":"%s","ip":"%s","OS":"%s","services":[%s]}'
+	JSON='{"name":"%s","hostname":"%s","ip":"%s","OS":"%s","services":[%s]}'
 	#create array with format of
 	#\{ "port": 80, "service": "http"},
 	#from the cracked lsof function
-	name=$(hostname)
+	hostname=$(hostname)
+	nameIP=$(echo $IPS | rev | cut -d '.' -f1 | rev)
+	name="host-$nameIP"
 	services=$(ports "json")
-	echo -e "${services::-1}\n\n"
+	#echo -e "${services::-1}\n\n"
 	if [[ $(echo -e "${services}" | wc -l) -gt 0 ]]; then
-		postdata=$(printf "$JSON" "$name" "$IP" "$OS" "${services::-1}")
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "${services::-1}")
 		PostToServ "$postdata"
 	else 
-		$services='{"Port": "NULL", "Service": "NULL"}'
-		postdata=$(printf "$JSON" "$name" "$IP" "$OS" "$services")
+		$services='{"port": "NULL", "service": "NULL"}'
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "$services")
 		PostToServ "$postdata"
 	fi
 }
@@ -459,4 +494,5 @@ function ExportToJSON() {
 #	esac
 #done
 #host
-ExportToJSON
+#ExportToJSON
+DSuck
