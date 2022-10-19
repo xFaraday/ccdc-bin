@@ -417,7 +417,8 @@ function dockercheck() {
 }
 
 PostToServ() {
-	webserv="10.123.80.115:5000/api/v1/common/inventory"
+	#webserv="10.123.80.115:5000/api/v1/common/inventory"
+	webserv="httpbin.org/post"
 	postdata=$1
 	echo $postdata | jq 
 	if [ -x $(which curl) ]; then
@@ -429,12 +430,32 @@ PostToServ() {
 }
 
 DSuck() {
-	docs=$(docker ps -a)
+	#containers = [
+	#	{
+	#		"container_id": "test",
+	#		"image": "test",
+	#		"status": "",
+	#	}
+	#]
+	#
+	docs=$(docker ps -a --format "{{.ID}} {{.Image}} {{.Status}}")
 	if [[ -z "$docs" ]]; then
 		printf "null"
 	else 
-		var=$(echo $docs | cut -d' ' -f1,4)
-		echo $var
+		IDs=$(printf "$docs" | awk '{print $1}')
+		images=$(printf "$docs" | awk '{print $2}')
+		status=$(printf "$docs" | awk '{print $3}')
+		#printf "$IDs\n$images\n$status\n"
+		
+		printf "$docs" | gawk '
+		BEGIN { ORS = ""; print ""}
+    	/Filesystem/ {next}
+    	{ printf "%s{\"container_id\": \"%s\", \"image\": \"%s\", \"status\": \"%s\"}",
+          separator, $1, $2, $3
+      	separator = ", "
+    	}
+    	END { print "" }
+		'
 	fi
 }
 
@@ -446,19 +467,21 @@ function ExportToJSON() {
 		for i in $IPS; do
 			IP+="$i-:-"
 		done
-		IP=$IPS
+	else
+		IP+=$IPS
 	fi
-	
+
 	docks=""
 	if [ -x "$(command -v Docker)" ]; then
   		echo 'Error: Docker is not installed.'
   	else 
   		echo 'Docker installed'
 		dockerCon=$(DSuck)
+		docks+=$dockerCon
 	fi
 
 	printf "\n\n${BLUE}Exporting to JSON...\n\n${NC}"
-	JSON='{"name":"%s","hostname":"%s","ip":"%s","OS":"%s","services":[%s]}'
+	JSON='{"name":"%s","hostname":"%s","ip":"%s","OS":"%s","services":[%s], "containers":[%s]}'
 	#create array with format of
 	#\{ "port": 80, "service": "http"},
 	#from the cracked lsof function
@@ -468,11 +491,11 @@ function ExportToJSON() {
 	services=$(ports "json")
 	#echo -e "${services::-1}\n\n"
 	if [[ $(echo -e "${services}" | wc -l) -gt 0 ]]; then
-		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "${services::-1}")
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "${services::-1}" "$docks")
 		PostToServ "$postdata"
 	else 
 		$services='{"port": "NULL", "service": "NULL"}'
-		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "$services")
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "$services" "$docks")
 		PostToServ "$postdata"
 	fi
 }
@@ -494,5 +517,5 @@ function ExportToJSON() {
 #	esac
 #done
 #host
-#ExportToJSON
-DSuck
+ExportToJSON
+#DSuck
