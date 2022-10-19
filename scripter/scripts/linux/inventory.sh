@@ -137,11 +137,11 @@ function banner() {
        \CSUSBCSU${RED}SBCSU${BLUE}SB${RED}CSUSB${BLUE}CSUSBCSU/.
         \CSUSBCSUSBCSUSBCSUSBCSUSBC/.
               ${RED}\CSUSBCSUSBCSUS${RED}/${DG}.
-              ${WHITE}V${RED}\\${DG}CSUSBCSUSBCS${RED}/${WHITE}V${DG}.
-               ${WHITE}V${RED}\\${DG}CSUSBCSUSB${RED}/${WHITE}V${DG}.
-                ${WHITE}V${RED}\\${DG}CSUSBCSU${RED}/${WHITE}V${DG}.
-                 ${WHITE}V${RED}\\${DG}CSUSBC${RED}/${WHITE}V${DG}.
-                  ${WHITE}V${RED}\\${DG}CSUS${RED}/${WHITE}V${DG}.${WHITE}=\\${DG}      ~
+              ${WHITE}V${RED}\\${BLUE}CSUSBCSUSBCS${RED}/${WHITE}V${DG}.
+               ${WHITE}V${RED}\\${BLUE}CSUSBCSUSB${RED}/${WHITE}V${DG}.
+                ${WHITE}V${RED}\\${BLUE}CSUSBCSU${RED}/${WHITE}V${DG}.
+                 ${WHITE}V${RED}\\${BLUE}CSUSBC${RED}/${WHITE}V${DG}.
+                  ${WHITE}V${RED}\\${BLUE}CSUS${RED}/${WHITE}V${DG}.${WHITE}=\\${DG}      ~
                    ${WHITE}V${RED}\**/${WHITE}V${DG}.${WHITE}\\==\\${DG}   ~
                            ${WHITE}\\==\\${DG}    ~
                             ${WHITE}\\==\\${DG} ~
@@ -395,12 +395,17 @@ GetIP() {
 }
 
 GetUsers() {
-	users=$(grep 'sh$' /etc/passwd)
-	names=$(echo $users | cut -d':' -f1)
-	uid=$(echo $users | cut -d':' -f3)
-	length=$(echo $users | wc -l)
-	
+	users=$(grep 'sh$' /etc/passwd | tr ':' ' ')
 
+	printf "$users" | gawk '
+	BEGIN { ORS = ""; print ""}
+	/Filesystem/ {next}
+	{ printf "%s{\"username\": \"%s\", \"uid\": \"%s\", \"home_dir\": \"%s\"}",
+		separator, $1, $3, $5
+	separator = ", "
+	}
+	END { print "" }
+	'
 }
 
 function dockercheck() {
@@ -472,30 +477,38 @@ function ExportToJSON() {
 	fi
 
 	docks=""
-	if [ -x "$(command -v Docker)" ]; then
-  		echo 'Error: Docker is not installed.'
-  	else 
-  		echo 'Docker installed'
+	if [ ! -x "$(command -v Docker)" ]; then
 		dockerCon=$(DSuck)
 		docks+=$dockerCon
 	fi
 
 	printf "\n\n${BLUE}Exporting to JSON...\n\n${NC}"
-	JSON='{"name":"%s","hostname":"%s","ip":"%s","OS":"%s","services":[%s], "containers":[%s]}'
+	JSON='{"name":"%s","hostname":"%s","ip":"%s","OS":"%s","services":[%s], "containers":[%s], "users":[%s]}'
 	#create array with format of
 	#\{ "port": 80, "service": "http"},
 	#from the cracked lsof function
+
 	hostname=$(hostname)
+
 	nameIP=$(echo $IPS | rev | cut -d '.' -f1 | rev)
+
 	name="host-$nameIP"
+
 	services=$(ports "json")
+
+	#@TODO: !get groups for each user!
+	#
+	#
+	#
+	users=$(GetUsers)
+
 	#echo -e "${services::-1}\n\n"
 	if [[ $(echo -e "${services}" | wc -l) -gt 0 ]]; then
-		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "${services::-1}" "$docks")
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "${services::-1}" "$docks" "$users")
 		PostToServ "$postdata"
 	else 
 		$services='{"port": "NULL", "service": "NULL"}'
-		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "$services" "$docks")
+		postdata=$(printf "$JSON" "$name" "$hostname" "$IP" "$OS" "$services" "$docks" "$users")
 		PostToServ "$postdata"
 	fi
 }
@@ -517,5 +530,6 @@ function ExportToJSON() {
 #	esac
 #done
 #host
+#banner
 ExportToJSON
-#DSuck
+#GetUsers
